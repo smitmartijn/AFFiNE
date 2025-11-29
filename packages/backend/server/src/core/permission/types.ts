@@ -77,6 +77,17 @@ export const Actions = {
 
 export const RoleActionsMap = {
   WorkspaceRole: {
+    get [WorkspaceRole.NoAccess]() {
+      return [
+        // Basic workspace access for cloud workspace functionality
+        Action.Workspace.Read, // Can access workspace UI
+        Action.Workspace.Properties.Read, // Can read workspace metadata
+        Action.Workspace.Sync, // Can join sync room for real-time collaboration
+        // NOTE: No Workspace.Organize.Read - can't see workspace content lists
+        // NOTE: No Workspace.Blobs.Read - can't access file content
+        // They can only access specific documents when explicitly granted permissions
+      ];
+    },
     get [WorkspaceRole.External]() {
       return [
         Action.Workspace.Read,
@@ -274,6 +285,9 @@ export function fixupDocRole(
   docRole = docRole ?? DocRole.External;
 
   switch (workspaceRole) {
+    case WorkspaceRole.NoAccess:
+      // NoAccess users can only have what's explicitly granted, no workspace-level privileges
+      return docRole === DocRole.None ? null : docRole;
     case WorkspaceRole.External:
       // Workspace External user won't be able to have any high permission doc role
       // set the maximum to Editor in case we have [Can Edit with share link] feature

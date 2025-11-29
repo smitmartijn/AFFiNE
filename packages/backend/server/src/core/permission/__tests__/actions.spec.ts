@@ -82,3 +82,74 @@ test('should be able to find minimal doc role from action', t => {
     )
   );
 });
+
+test('NoAccess role should have minimal workspace permissions', t => {
+  const permissions = mapWorkspaceRoleToPermissions(WorkspaceRole.NoAccess);
+
+  // NoAccess users should be able to access workspace and sync for collaboration
+  t.true(permissions['Workspace.Read'], 'NoAccess should allow workspace read');
+  t.true(
+    permissions['Workspace.Properties.Read'],
+    'NoAccess should allow properties read'
+  );
+  t.true(
+    permissions['Workspace.Sync'],
+    'NoAccess should allow sync for real-time collaboration'
+  );
+
+  // But should NOT have access to workspace content organization or blobs
+  t.falsy(
+    permissions['Workspace.Organize.Read'],
+    'NoAccess should NOT allow organize read'
+  );
+  t.falsy(
+    permissions['Workspace.Blobs.Read'],
+    'NoAccess should NOT allow blob access'
+  );
+});
+
+test('NoAccess role should not grant elevated doc permissions', t => {
+  // NoAccess users should only get what's explicitly granted
+  t.is(fixupDocRole(WorkspaceRole.NoAccess, DocRole.None), null);
+  t.is(fixupDocRole(WorkspaceRole.NoAccess, DocRole.Reader), DocRole.Reader);
+  t.is(fixupDocRole(WorkspaceRole.NoAccess, DocRole.Manager), DocRole.Manager);
+  // Should not auto-elevate like Admin/Owner roles do
+  t.not(fixupDocRole(WorkspaceRole.NoAccess, DocRole.External), DocRole.Owner);
+});
+
+test('NoAccess role should be lowest in hierarchy', t => {
+  const roles = [
+    WorkspaceRole.NoAccess,
+    WorkspaceRole.External,
+    WorkspaceRole.Collaborator,
+    WorkspaceRole.Admin,
+    WorkspaceRole.Owner,
+  ];
+  const sortedRoles = [...roles].sort((a, b) => a - b);
+  t.is(
+    sortedRoles[0],
+    WorkspaceRole.NoAccess,
+    'NoAccess should be the lowest role value'
+  );
+});
+
+test('NoAccess with DocRole combinations', t => {
+  // Test that NoAccess doesn't auto-elevate document permissions
+  t.is(
+    fixupDocRole(WorkspaceRole.NoAccess, DocRole.External),
+    DocRole.External
+  );
+  t.is(fixupDocRole(WorkspaceRole.NoAccess, DocRole.Reader), DocRole.Reader);
+  t.is(fixupDocRole(WorkspaceRole.NoAccess, DocRole.Manager), DocRole.Manager);
+  t.is(fixupDocRole(WorkspaceRole.NoAccess, DocRole.Owner), DocRole.Owner);
+
+  // NoAccess + None should return null (no access)
+  t.is(fixupDocRole(WorkspaceRole.NoAccess, DocRole.None), null);
+
+  // Compare with other roles that do auto-elevate
+  t.is(fixupDocRole(WorkspaceRole.Owner, DocRole.External), DocRole.Owner); // Owner auto-elevates
+  t.is(
+    fixupDocRole(WorkspaceRole.NoAccess, DocRole.External),
+    DocRole.External
+  ); // NoAccess does not
+});

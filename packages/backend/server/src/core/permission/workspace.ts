@@ -157,14 +157,18 @@ export class WorkspaceAccessController extends AccessController<'ws'> {
     for (const defaultDocRole of defaultDocRoles) {
       let docRole: DocRole | null;
       // if user is in workspace but doc role is not set, fallback to default doc role
-      if (workspaceRole !== null && workspaceRole !== WorkspaceRole.External) {
+      if (
+        workspaceRole !== null &&
+        workspaceRole !== WorkspaceRole.External &&
+        workspaceRole !== WorkspaceRole.NoAccess
+      ) {
         docRole =
           defaultDocRole.external !== null
             ? // edgecase: when doc role set to [None] for workspace member, but doc is public, we should fallback to external role
               Math.max(defaultDocRole.workspace, defaultDocRole.external)
             : defaultDocRole.workspace;
       } else {
-        // else fallback to external doc role
+        // else fallback to external doc role (including NoAccess users)
         docRole = defaultDocRole.external;
       }
 

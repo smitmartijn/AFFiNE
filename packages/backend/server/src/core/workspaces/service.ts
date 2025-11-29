@@ -179,36 +179,42 @@ export class WorkspaceService {
     userId: string,
     ws: { id: string; role: WorkspaceRole }
   ) {
-    const user = await this.models.user.getWorkspaceUser(userId);
-    if (!user) {
-      this.logger.warn(
-        `User not found for seeding role changed email: ${userId}`
-      );
-      return;
-    }
+    try {
+      // Use a fresh database query outside of any transaction
+      const user = await this.models.user.get(userId);
 
-    if (ws.role === WorkspaceRole.Admin) {
-      await this.mailer.trySend({
-        name: 'TeamBecomeAdmin',
-        to: user.email,
-        props: {
-          workspace: {
-            $$workspaceId: ws.id,
+      if (!user) {
+        this.logger.warn(
+          `User not found for sending role changed email: ${userId}`
+        );
+        return;
+      }
+
+      if (ws.role === WorkspaceRole.Admin) {
+        await this.mailer.trySend({
+          name: 'TeamBecomeAdmin',
+          to: user.email,
+          props: {
+            workspace: {
+              $$workspaceId: ws.id,
+            },
+            url: this.url.link(`/workspace/${ws.id}`),
           },
-          url: this.url.link(`/workspace/${ws.id}`),
-        },
-      });
-    } else {
-      await this.mailer.trySend({
-        name: 'TeamBecomeCollaborator',
-        to: user.email,
-        props: {
-          workspace: {
-            $$workspaceId: ws.id,
+        });
+      } else {
+        await this.mailer.trySend({
+          name: 'TeamBecomeCollaborator',
+          to: user.email,
+          props: {
+            workspace: {
+              $$workspaceId: ws.id,
+            },
+            url: this.url.link(`/workspace/${ws.id}`),
           },
-          url: this.url.link(`/workspace/${ws.id}`),
-        },
-      });
+        });
+      }
+    } catch (error) {
+      this.logger.error('Failed to send role changed email:', error);
     }
   }
 

@@ -42,7 +42,7 @@ export class WorkspaceMembersStore extends Store {
     return data.workspace;
   }
 
-  async inviteBatch(workspaceId: string, emails: string[]) {
+  async inviteBatch(workspaceId: string, emails: string[], role?: Permission) {
     if (!this.workspaceServerService.server) {
       throw new Error('No Server');
     }
@@ -51,6 +51,7 @@ export class WorkspaceMembersStore extends Store {
       variables: {
         workspaceId,
         emails,
+        role,
       },
     });
     return inviteBatch.inviteMembers;

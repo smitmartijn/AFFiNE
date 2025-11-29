@@ -262,15 +262,28 @@ export class WorkspaceDocResolver {
 
   @ResolveField(() => PaginatedDocType)
   async docs(
+    @CurrentUser() me: CurrentUser,
     @Parent() workspace: WorkspaceType,
     @Args('pagination', PaginationInput.decode) pagination: PaginationInput
   ): Promise<PaginatedDocType> {
+    // Check if user has permission to see workspace document lists
+    await this.ac
+      .user(me.id)
+      .workspace(workspace.id)
+      .assert('Workspace.Organize.Read');
+
     const [count, rows] = await this.models.doc.paginateDocInfo(
       workspace.id,
       pagination
     );
 
-    return paginate(rows, 'createdAt', pagination, count);
+    // Filter documents based on user permissions (same as recentlyUpdatedDocs)
+    const accessibleDocs = await this.ac
+      .user(me.id)
+      .workspace(workspace.id)
+      .docs(rows, 'Doc.Read');
+
+    return paginate(accessibleDocs, 'createdAt', pagination, count);
   }
 
   @ResolveField(() => PaginatedDocType, {
@@ -281,6 +294,12 @@ export class WorkspaceDocResolver {
     @Parent() workspace: WorkspaceType,
     @Args('pagination', PaginationInput.decode) pagination: PaginationInput
   ): Promise<PaginatedDocType> {
+    // Check if user has permission to see workspace document lists
+    await this.ac
+      .user(me.id)
+      .workspace(workspace.id)
+      .assert('Workspace.Organize.Read');
+
     const [count, rows] = await this.models.doc.paginateDocInfoByUpdatedAt(
       workspace.id,
       pagination

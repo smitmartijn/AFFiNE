@@ -272,6 +272,10 @@ const getMemberStatus = (member: Member): I18nString => {
           return 'Admin';
         case Permission.Collaborator:
           return 'Collaborator';
+        case Permission.NoAccess:
+          return 'Restricted Access';
+        case Permission.External:
+          return 'External';
         default:
           return 'Member';
       }

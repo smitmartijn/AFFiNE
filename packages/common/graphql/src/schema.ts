@@ -2127,6 +2127,7 @@ export enum Permission {
   Admin = 'Admin',
   Collaborator = 'Collaborator',
   External = 'External',
+  NoAccess = 'NoAccess',
   Owner = 'Owner',
 }
 

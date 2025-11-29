@@ -2,6 +2,7 @@ import type {
   InviteLink,
   WorkspaceInviteLinkExpireTime,
 } from '@affine/graphql';
+import { Permission } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import { EmailIcon, LinkIcon } from '@blocksuite/icons/rc';
 
@@ -24,6 +25,8 @@ export const ModalContent = ({
   onRevokeInviteLink,
   importCSV,
   invitationLink,
+  selectedRole,
+  onRoleChange,
 }: {
   inviteEmail: string;
   importCSV: React.ReactNode;
@@ -39,6 +42,8 @@ export const ModalContent = ({
     expireTime: WorkspaceInviteLinkExpireTime
   ) => Promise<string>;
   onRevokeInviteLink: () => Promise<boolean>;
+  selectedRole: Permission;
+  onRoleChange: (role: Permission) => void;
 }) => {
   const t = useI18n();
 
@@ -80,6 +85,8 @@ export const ModalContent = ({
           isMutating={isMutating}
           isValidEmail={isValidEmail}
           importCSV={importCSV}
+          selectedRole={selectedRole}
+          onRoleChange={onRoleChange}
         />
       ) : (
         <LinkInvite

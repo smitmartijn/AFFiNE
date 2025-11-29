@@ -3,6 +3,7 @@ import type {
   InviteLink,
   WorkspaceInviteLinkExpireTime,
 } from '@affine/graphql';
+import { Permission } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -13,7 +14,7 @@ import * as styles from './styles.css';
 export interface InviteTeamMemberModalProps {
   open: boolean;
   setOpen: (value: boolean) => void;
-  onConfirm: (params: { emails: string[] }) => void;
+  onConfirm: (params: { emails: string[]; role?: Permission }) => void;
   isMutating: boolean;
   copyTextToClipboard: (text: string) => Promise<boolean>;
   onGenerateInviteLink: (
@@ -46,6 +47,9 @@ export const InviteTeamMemberModal = ({
   const [inviteEmails, setInviteEmails] = useState('');
   const [isValidEmail, setIsValidEmail] = useState(true);
   const [inviteMethod, setInviteMethod] = useState<InviteMethodType>('email');
+  const [selectedRole, setSelectedRole] = useState<Permission>(
+    Permission.Collaborator
+  );
 
   const handleConfirm = useCallback(() => {
     if (inviteMethod === 'link') {
@@ -64,8 +68,9 @@ export const InviteTeamMemberModal = ({
 
     onConfirm({
       emails: inviteEmailsArray,
+      role: selectedRole,
     });
-  }, [inviteEmails, inviteMethod, onConfirm, setOpen]);
+  }, [inviteEmails, inviteMethod, onConfirm, setOpen, selectedRole]);
 
   useEffect(() => {
     if (!open) {
@@ -115,6 +120,8 @@ export const InviteTeamMemberModal = ({
         copyTextToClipboard={copyTextToClipboard}
         onGenerateInviteLink={onGenerateInviteLink}
         onRevokeInviteLink={onRevokeInviteLink}
+        selectedRole={selectedRole}
+        onRoleChange={setSelectedRole}
       />
     </ConfirmModal>
   );

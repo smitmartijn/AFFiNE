@@ -8,5 +8,6 @@ public enum Permission: String, EnumType {
   case admin = "Admin"
   case collaborator = "Collaborator"
   case external = "External"
+  case noAccess = "NoAccess"
   case owner = "Owner"
 }

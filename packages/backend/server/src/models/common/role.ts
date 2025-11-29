@@ -12,6 +12,7 @@ export enum DocRole {
 }
 
 export enum WorkspaceRole {
+  NoAccess = -999,
   External = -99,
   Collaborator = 1,
   Admin = 10,

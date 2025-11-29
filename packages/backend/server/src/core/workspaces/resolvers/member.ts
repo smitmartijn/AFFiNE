@@ -135,7 +135,14 @@ export class WorkspaceMemberResolver {
   async inviteMembers(
     @CurrentUser() me: CurrentUser,
     @Args('workspaceId') workspaceId: string,
-    @Args({ name: 'emails', type: () => [String] }) emails: string[]
+    @Args({ name: 'emails', type: () => [String] }) emails: string[],
+    @Args({
+      name: 'role',
+      type: () => WorkspaceRole,
+      nullable: true,
+      defaultValue: WorkspaceRole.Collaborator,
+    })
+    role?: WorkspaceRole
   ): Promise<InviteResult[]> {
     await this.ac
       .user(me.id)
@@ -180,10 +187,10 @@ export class WorkspaceMemberResolver {
 
         // no need to check quota, directly go allocating seat path
         if (isTeam) {
-          const role = await this.models.workspaceUser.set(
+          const memberRole = await this.models.workspaceUser.set(
             workspaceId,
             target.id,
-            WorkspaceRole.Collaborator,
+            role || WorkspaceRole.Collaborator,
             {
               status: WorkspaceMemberStatus.AllocatingSeat,
               source: WorkspaceMemberSource.Email,
@@ -192,17 +199,17 @@ export class WorkspaceMemberResolver {
           );
           results.push({
             email,
-            inviteId: role.id,
+            inviteId: memberRole.id,
           });
         } else {
           const needMoreSeat = quota.memberCount + idx + 1 > quota.memberLimit;
           if (needMoreSeat) {
             throw new NoMoreSeat({ spaceId: workspaceId });
           } else {
-            const role = await this.models.workspaceUser.set(
+            const memberRole = await this.models.workspaceUser.set(
               workspaceId,
               target.id,
-              WorkspaceRole.Collaborator,
+              role || WorkspaceRole.Collaborator,
               {
                 status: WorkspaceMemberStatus.Pending,
                 source: WorkspaceMemberSource.Email,
@@ -210,12 +217,12 @@ export class WorkspaceMemberResolver {
               }
             );
             this.event.emit('workspace.members.invite', {
-              inviteId: role.id,
+              inviteId: memberRole.id,
               inviterId: me.id,
             });
             results.push({
               email,
-              inviteId: role.id,
+              inviteId: memberRole.id,
             });
           }
         }
@@ -410,9 +417,15 @@ export class WorkspaceMemberResolver {
     if (newRole === WorkspaceRole.Owner) {
       await this.models.workspaceUser.setOwner(workspaceId, userId);
     } else {
-      // non-team workspace can only transfer ownership, but no detailed permission control
+      // Team workspace licensing restrictions:
+      // - Admin role requires team workspace (advanced management features)
+      // - External role requires team workspace (guest user controls)
+      // - Collaborator and NoAccess roles are allowed in all workspaces
       const isTeam = await this.workspaceService.isTeamWorkspace(workspaceId);
-      if (!isTeam) {
+      if (
+        !isTeam &&
+        (newRole === WorkspaceRole.Admin || newRole === WorkspaceRole.External)
+      ) {
         throw new ActionForbiddenOnNonTeamWorkspace();
       }
 

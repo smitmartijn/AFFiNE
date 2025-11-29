@@ -4180,6 +4180,10 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.payment.member.team.change.collaborator"](): string;
     /**
+      * `Restrict access`
+      */
+    ["com.affine.payment.member.team.change.no-access"](): string;
+    /**
       * `Assign as owner`
       */
     ["com.affine.payment.member.team.assign"](): string;
@@ -4267,6 +4271,26 @@ export function useAFFiNEI18N(): {
     ["com.affine.payment.member.team.change.collaborator.notify.message"](options: {
         readonly name: string;
     }): string;
+    /**
+      * `{{name}} now has restricted workspace access and can only access specific documents when granted.`
+      */
+    ["com.affine.payment.member.team.change.no-access.notify.message"](options: {
+        readonly name: string;
+    }): string;
+    /**
+      * `Restrict workspace access?`
+      */
+    ["com.affine.payment.member.team.change.no-access.confirm.title"](): string;
+    /**
+      * `{{name}} will have restricted access to workspace resources. They can only access specific documents when granted permission.`
+      */
+    ["com.affine.payment.member.team.change.no-access.confirm.description"](options: {
+        readonly name: string;
+    }): string;
+    /**
+      * `Restrict Access`
+      */
+    ["com.affine.payment.member.team.change.no-access.confirm.button"](): string;
     /**
       * `Owner assigned`
       */
@@ -5804,6 +5828,46 @@ export function useAFFiNEI18N(): {
       * `The database will be displayed in full-width mode.`
       */
     ["com.affine.settings.workspace.experimental-features.enable-database-full-width.description"](): string;
+    /**
+      * `Workspace Owner`
+      */
+    ["com.affine.settings.workspace.members.permission.owner"](): string;
+    /**
+      * `Full control of the workspace including member management, billing, and all documents`
+      */
+    ["com.affine.settings.workspace.members.permission.owner.description"](): string;
+    /**
+      * `Admin`
+      */
+    ["com.affine.settings.workspace.members.permission.admin"](): string;
+    /**
+      * `Can manage workspace settings, members, and all documents`
+      */
+    ["com.affine.settings.workspace.members.permission.admin.description"](): string;
+    /**
+      * `Collaborator`
+      */
+    ["com.affine.settings.workspace.members.permission.collaborator"](): string;
+    /**
+      * `Can create and edit documents, view workspace members`
+      */
+    ["com.affine.settings.workspace.members.permission.collaborator.description"](): string;
+    /**
+      * `External`
+      */
+    ["com.affine.settings.workspace.members.permission.external"](): string;
+    /**
+      * `Limited workspace access, can view and organize documents`
+      */
+    ["com.affine.settings.workspace.members.permission.external.description"](): string;
+    /**
+      * `No Access`
+      */
+    ["com.affine.settings.workspace.members.permission.no-access"](): string;
+    /**
+      * `Cannot access the workspace. Can only view specific documents when granted permission.`
+      */
+    ["com.affine.settings.workspace.members.permission.no-access.description"](): string;
     /**
       * `Database Attachment Note`
       */

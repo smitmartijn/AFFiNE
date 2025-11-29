@@ -2417,8 +2417,8 @@ export const setEnableUrlPreviewMutation = {
 export const inviteByEmailsMutation = {
   id: 'inviteByEmailsMutation' as const,
   op: 'inviteByEmails',
-  query: `mutation inviteByEmails($workspaceId: String!, $emails: [String!]!) {
-  inviteMembers(workspaceId: $workspaceId, emails: $emails) {
+  query: `mutation inviteByEmails($workspaceId: String!, $emails: [String!]!, $role: Permission) {
+  inviteMembers(workspaceId: $workspaceId, emails: $emails, role: $role) {
     email
     inviteId
     sentSuccess

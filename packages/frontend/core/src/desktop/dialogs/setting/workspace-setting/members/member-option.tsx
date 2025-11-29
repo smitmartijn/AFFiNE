@@ -165,6 +165,49 @@ export const MemberOptions = ({
       });
   }, [member, membersService, t]);
 
+  const handleChangeToNoAccess = useCallback(() => {
+    // Confirm action for sensitive role changes
+    openConfirmModal({
+      title:
+        t['com.affine.payment.member.team.change.no-access.confirm.title'](),
+      description: t[
+        'com.affine.payment.member.team.change.no-access.confirm.description'
+      ]({
+        name: member.name || member.email || member.id,
+      }),
+      confirmText:
+        t['com.affine.payment.member.team.change.no-access.confirm.button'](),
+      confirmButtonOptions: {
+        variant: 'error',
+      },
+      cancelText: t['Cancel'](),
+      onConfirm: () => {
+        membersService
+          .adjustMemberPermission(member.id, Permission.NoAccess)
+          .then(result => {
+            if (result) {
+              notify.success({
+                title:
+                  t['com.affine.payment.member.team.change.notify.title'](),
+                message: t[
+                  'com.affine.payment.member.team.change.no-access.notify.message'
+                ]({
+                  name: member.name || member.email || member.id,
+                }),
+              });
+              membersService.members.revalidate();
+            }
+          })
+          .catch(error => {
+            notify.error({
+              title: 'Operation failed',
+              message: error.message,
+            });
+          });
+      },
+    });
+  }, [member, membersService, t, openConfirmModal]);
+
   const handleRetryPayment = useCallback(() => {
     openConfirmModal({
       title: t['com.affine.payment.member.team.retry-payment.title'](),
@@ -243,7 +286,9 @@ export const MemberOptions = ({
         show:
           isOwner &&
           member.status === WorkspaceMemberStatus.Accepted &&
-          member.permission === Permission.Admin,
+          (member.permission === Permission.Admin ||
+            member.permission === Permission.NoAccess ||
+            member.permission === Permission.External),
       },
       {
         label: t['com.affine.payment.member.team.change.admin'](),
@@ -256,6 +301,15 @@ export const MemberOptions = ({
           member.status === WorkspaceMemberStatus.Accepted,
       },
       {
+        label: t['com.affine.payment.member.team.change.no-access'](),
+        onClick: handleChangeToNoAccess,
+        show:
+          isOwner &&
+          member.status === WorkspaceMemberStatus.Accepted &&
+          member.permission !== Permission.Owner &&
+          member.permission !== Permission.NoAccess,
+      },
+      {
         label: t['com.affine.payment.member.team.assign'](),
         onClick: handleAssignOwner,
         show: isOwner && member.status === WorkspaceMemberStatus.Accepted,
@@ -266,6 +320,7 @@ export const MemberOptions = ({
     handleAssignOwner,
     handleChangeToAdmin,
     handleChangeToCollaborator,
+    handleChangeToNoAccess,
     handleDecline,
     handleRemove,
     handleRetryPayment,

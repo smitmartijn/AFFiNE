@@ -18,10 +18,11 @@ export class WorkspaceMembersService extends Service {
 
   members = this.framework.createEntity(WorkspaceMembers);
 
-  async inviteMembers(emails: string[]) {
+  async inviteMembers(emails: string[], role?: Permission) {
     return await this.store.inviteBatch(
       this.workspaceService.workspace.id,
-      emails
+      emails,
+      role
     );
   }
 

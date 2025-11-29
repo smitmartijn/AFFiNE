@@ -204,6 +204,7 @@ export class SpaceSyncGateway
       if (spaceType === SpaceType.Workspace) {
         this.event.emit('workspace.embedding', { workspaceId: spaceId });
       }
+      // The join() method will call assertAccessible() which checks Workspace.Sync permission
       await this.selectAdapter(client, spaceType).join(user.id, spaceId);
     }
 
@@ -222,6 +223,7 @@ export class SpaceSyncGateway
 
   @SubscribeMessage('space:load-doc')
   async onLoadSpaceDoc(
+    @CurrentUser() user: CurrentUser,
     @ConnectedSocket() client: Socket,
     @MessageBody()
     { spaceType, spaceId, docId, stateVector }: LoadDocMessage
@@ -231,6 +233,9 @@ export class SpaceSyncGateway
     const id = new DocID(docId, spaceId);
     const adapter = this.selectAdapter(client, spaceType);
     adapter.assertIn(spaceId);
+
+    // Check document-level permission before loading
+    await this.ac.user(user.id).doc(spaceId, id.guid).assert('Doc.Read');
 
     const doc = await adapter.diff(
       spaceId,
@@ -253,10 +258,15 @@ export class SpaceSyncGateway
 
   @SubscribeMessage('space:delete-doc')
   async onDeleteSpaceDoc(
+    @CurrentUser() user: CurrentUser,
     @ConnectedSocket() client: Socket,
     @MessageBody() { spaceType, spaceId, docId }: DeleteDocMessage
   ) {
     const adapter = this.selectAdapter(client, spaceType);
+
+    // Check document-level permission before deleting
+    await this.ac.user(user.id).doc(spaceId, docId).assert('Doc.Delete');
+
     await adapter.delete(spaceId, docId);
   }
 
@@ -276,8 +286,8 @@ export class SpaceSyncGateway
     const adapter = this.selectAdapter(client, spaceType);
     const id = new DocID(docId, spaceId);
 
-    // TODO(@forehalo): enable after frontend supporting doc revert
-    // await this.ac.user(user.id).doc(spaceId, id.guid).assert('Doc.Update');
+    // Check document-level permission before updating
+    await this.ac.user(user.id).doc(spaceId, id.guid).assert('Doc.Update');
     const timestamp = await adapter.push(
       spaceId,
       id.guid,
@@ -317,8 +327,8 @@ export class SpaceSyncGateway
     const { spaceType, spaceId, docId, update } = message;
     const adapter = this.selectAdapter(client, spaceType);
 
-    // TODO(@forehalo): enable after frontend supporting doc revert
-    // await this.ac.user(user.id).doc(spaceId, docId).assert('Doc.Update');
+    // Check document-level permission before updating
+    await this.ac.user(user.id).doc(spaceId, docId).assert('Doc.Update');
     const timestamp = await adapter.push(
       spaceId,
       docId,
@@ -354,6 +364,7 @@ export class SpaceSyncGateway
 
   @SubscribeMessage('space:load-doc-timestamps')
   async onLoadDocTimestamps(
+    @CurrentUser() user: CurrentUser,
     @ConnectedSocket() client: Socket,
     @MessageBody()
     { spaceType, spaceId, timestamp }: LoadDocTimestampsMessage
@@ -362,8 +373,23 @@ export class SpaceSyncGateway
 
     const stats = await adapter.getTimestamps(spaceId, timestamp);
 
+    // Filter timestamps to only include documents the user has access to
+    const filteredStats: Record<string, number> = {};
+    if (stats) {
+      for (const [docId, docTimestamp] of Object.entries(stats)) {
+        // Check if user has Doc.Read permission for each document
+        const canRead = await this.ac
+          .user(user.id)
+          .doc(spaceId, docId)
+          .can('Doc.Read');
+        if (canRead) {
+          filteredStats[docId] = docTimestamp;
+        }
+      }
+    }
+
     return {
-      data: stats ?? {},
+      data: filteredStats,
     };
   }
 
@@ -374,6 +400,9 @@ export class SpaceSyncGateway
     @MessageBody()
     { spaceType, spaceId, docId }: JoinSpaceAwarenessMessage
   ) {
+    // Check document-level permission before joining awareness
+    await this.ac.user(user.id).doc(spaceId, docId).assert('Doc.Read');
+
     await this.selectAdapter(client, spaceType).join(
       user.id,
       spaceId,
@@ -454,7 +483,16 @@ abstract class SyncSocketAdapter {
     if (this.in(spaceId, roomType)) {
       return;
     }
-    await this.assertAccessible(spaceId, userId, 'Workspace.Sync');
+
+    // For general sync rooms, require workspace organize access to prevent
+    // NoAccess users from receiving document broadcasts
+    if (roomType === 'sync') {
+      await this.assertAccessible(spaceId, userId, 'Workspace.Organize.Read');
+    } else {
+      // For specific document awareness rooms, just require sync permission
+      await this.assertAccessible(spaceId, userId, 'Workspace.Sync');
+    }
+
     return this.client.join(this.room(spaceId, roomType));
   }
 
